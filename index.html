@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>uhmb</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 30px;
+    }
+
+    #row {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+      width: 90%;
+      max-width: 480px;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px;
+      font-size: 14px;
+      background: #1a1a1a;
+      color: white;
+      border: 1px solid #444;
+      border-radius: 6px;
+    }
+
+    button {
+      padding: 8px 14px;
+      background: #333;
+      color: white;
+      border: 1px solid #555;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #444;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    #status {
+      margin-top: 12px;
+      font-size: 12px;
+      opacity: 0.8;
+      min-height: 16px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="row">
+  <input id="msg" maxlength="240" placeholder="write anything" autocomplete="off">
+  <button id="sendBtn">send</button>
+</div>
+<div id="status"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCkjHTbcxY5Xnv_vr1GvOZoI7Q5juQBl-U",
+  databaseURL: "https://pixelpost-b0450-default-rtdb.firebaseio.com/"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const input = document.getElementById("msg");
+const btn = document.getElementById("sendBtn");
+const status = document.getElementById("status");
+
+async function send() {
+  const text = input.value.trim();
+  if (!text) return;
+
+  btn.disabled = true;
+  try {
+    await set(ref(db, "message"), text);
+    input.value = "";
+    status.textContent = "sent";
+  } catch (e) {
+    status.textContent = "failed";
+  }
+  btn.disabled = false;
+}
+
+btn.onclick = send;
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") send();
+});
+</script>
+
+</body>
+</html>
