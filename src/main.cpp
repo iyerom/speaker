@@ -38,7 +38,7 @@ void setup() {
   Serial.println("\nWiFi connected");
 
   audio.setPinout(BCLK, LRC, DIN);
-  audio.setVolume(12);  
+  audio.setVolume(21);  
 
   sslClient.setInsecure();
   sslClient.setTimeout(1000);
