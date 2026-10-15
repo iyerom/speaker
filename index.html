@@ -152,7 +152,7 @@ async function send() {
     const key = push(ref(db, "spLog")).key;
     await update(ref(db), {
       "message": name + ":" + text,
-      ["log/" + key]: { name, text, ts: serverTimestamp() }
+      ["spLog/" + key]: { name, text, ts: serverTimestamp() }
     });
     input.value = "";
     status.textContent = "sent";
