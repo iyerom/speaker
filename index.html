@@ -54,6 +54,37 @@
       cursor: default;
     }
 
+    #log {
+      width: 95%;
+      max-width: 1440px;
+      height: 35vh;
+      overflow-y: auto;
+      margin-top: 24px;
+      padding: 16px;
+      box-sizing: border-box;
+      background: #1a1a1a;
+      border: 3px solid #444;
+      border-radius: 18px;
+      font-size: 26px;
+    }
+
+    .entry {
+      padding: 8px 0;
+      border-bottom: 1px solid #2a2a2a;
+      word-wrap: break-word;
+    }
+
+    .time {
+      opacity: 0.5;
+      font-size: 18px;
+      margin-right: 12px;
+    }
+
+    .who {
+      font-weight: bold;
+      margin-right: 12px;
+    }
+
     #status {
       margin-top: 24px;
       font-size: 24px;
@@ -71,10 +102,14 @@
   <button id="sendBtn">send</button>
 </div>
 <div id="status"></div>
+<div id="log"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import {
+  getDatabase, ref, push, update, get, query,
+  orderByKey, limitToLast, onValue, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCkjHTbcxY5Xnv_vr1GvOZoI7Q5juQBl-U",
@@ -88,8 +123,22 @@ const nameInput = document.getElementById("name");
 const input = document.getElementById("msg");
 const btn = document.getElementById("sendBtn");
 const status = document.getElementById("status");
+const logDiv = document.getElementById("log");
+
+const LOG_MAX = 10;
 
 try { nameInput.value = localStorage.getItem("name") || ""; } catch (e) {}
+
+async function trimLog() {
+  const snap = await get(query(ref(db, "log"), orderByKey(), limitToLast(LOG_MAX + 10)));
+  const keys = [];
+  snap.forEach((c) => { keys.push(c.key); });
+  const extra = keys.slice(0, Math.max(0, keys.length - LOG_MAX));
+  if (!extra.length) return;
+  const updates = {};
+  extra.forEach((k) => { updates["log/" + k] = null; });
+  await update(ref(db), updates);
+}
 
 async function send() {
   const text = input.value.trim();
@@ -100,14 +149,47 @@ async function send() {
 
   btn.disabled = true;
   try {
-    await set(ref(db, "message"), name + ":" + text);
+    const key = push(ref(db, "log")).key;
+    await update(ref(db), {
+      "message": name + ":" + text,
+      ["log/" + key]: { name, text, ts: serverTimestamp() }
+    });
     input.value = "";
     status.textContent = "sent";
   } catch (e) {
     status.textContent = "failed";
+    btn.disabled = false;
+    return;
   }
   btn.disabled = false;
+
+  try { await trimLog(); } catch (e) { console.log("trim failed", e); }
 }
+
+onValue(query(ref(db, "log"), orderByKey(), limitToLast(LOG_MAX)), (snap) => {
+  const atBottom = logDiv.scrollTop + logDiv.clientHeight >= logDiv.scrollHeight - 30;
+  logDiv.textContent = "";
+  snap.forEach((c) => {
+    const v = c.val();
+    const row = document.createElement("div");
+    row.className = "entry";
+
+    const time = document.createElement("span");
+    time.className = "time";
+    time.textContent = v.ts ? new Date(v.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+
+    const who = document.createElement("span");
+    who.className = "who";
+    who.textContent = v.name;
+
+    const what = document.createElement("span");
+    what.textContent = v.text;
+
+    row.append(time, who, what);
+    logDiv.appendChild(row);
+  });
+  if (atBottom) logDiv.scrollTop = logDiv.scrollHeight;
+});
 
 btn.onclick = send;
 input.addEventListener("keydown", (e) => {
