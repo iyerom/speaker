@@ -54,7 +54,6 @@ void setup() {
 void loop() {
   if (millis() - lastWifiCheck > 10000) {
     lastWifiCheck = millis();
-    Serial.printf("WiFi status: %d, RSSI: %d\n", WiFi.status(), WiFi.RSSI());
     if (WiFi.status() != WL_CONNECTED) {
       Serial.println("WiFi lost, reconnecting");
       WiFi.disconnect();
@@ -93,7 +92,7 @@ void processData(AsyncResult &aResult) {
 
   if (rtdb.dataPath().equals("/")) {
     String text = rtdb.to<String>();
-    String name = "", msg = "";
+    String name = "", msg = text;
     int sep = text.indexOf(":");
     if(sep>0){
       name = text.substring(0,sep);
