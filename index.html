@@ -130,13 +130,13 @@ const LOG_MAX = 10;
 try { nameInput.value = localStorage.getItem("name") || ""; } catch (e) {}
 
 async function trimLog() {
-  const snap = await get(query(ref(db, "log"), orderByKey(), limitToLast(LOG_MAX + 10)));
+  const snap = await get(query(ref(db, "spLog"), orderByKey(), limitToLast(LOG_MAX + 10)));
   const keys = [];
   snap.forEach((c) => { keys.push(c.key); });
   const extra = keys.slice(0, Math.max(0, keys.length - LOG_MAX));
   if (!extra.length) return;
   const updates = {};
-  extra.forEach((k) => { updates["log/" + k] = null; });
+  extra.forEach((k) => { updates["spLog/" + k] = null; });
   await update(ref(db), updates);
 }
 
@@ -149,7 +149,7 @@ async function send() {
 
   btn.disabled = true;
   try {
-    const key = push(ref(db, "log")).key;
+    const key = push(ref(db, "spLog")).key;
     await update(ref(db), {
       "message": name + ":" + text,
       ["log/" + key]: { name, text, ts: serverTimestamp() }
@@ -166,7 +166,7 @@ async function send() {
   try { await trimLog(); } catch (e) { console.log("trim failed", e); }
 }
 
-onValue(query(ref(db, "log"), orderByKey(), limitToLast(LOG_MAX)), (snap) => {
+onValue(query(ref(db, "spLog"), orderByKey(), limitToLast(LOG_MAX)), (snap) => {
   const atBottom = logDiv.scrollTop + logDiv.clientHeight >= logDiv.scrollHeight - 30;
   logDiv.textContent = "";
   snap.forEach((c) => {
