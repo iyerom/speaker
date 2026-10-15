@@ -25,11 +25,13 @@ Audio audio;
 
 String newMsg = "";
 bool hasPending = false;
+static unsigned long lastWifiCheck = 0;
 
 void setup() {
   Serial.begin(115200);
 
   WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);
   WiFi.begin(WIFI_SSID, WPA2_AUTH_PEAP, WIFI_USER, WIFI_USER, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -50,13 +52,22 @@ void setup() {
 }
 
 void loop() {
+  if (millis() - lastWifiCheck > 10000) {
+    lastWifiCheck = millis();
+    Serial.printf("WiFi status: %d, RSSI: %d\n", WiFi.status(), WiFi.RSSI());
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("WiFi lost, reconnecting");
+      WiFi.disconnect();
+      WiFi.begin(WIFI_SSID, WPA2_AUTH_PEAP, WIFI_USER, WIFI_USER, WIFI_PASSWORD);
+    }
+  }
   app.loop();
   audio.loop();
 
   if (hasPending) {
-    String msg = newMsg;
+    
     hasPending = false;
-    audio.connecttospeech(msg.c_str(), "en");
+    audio.connecttospeech(newMsg.c_str(), "en");
   }
 }
 
@@ -82,9 +93,15 @@ void processData(AsyncResult &aResult) {
 
   if (rtdb.dataPath().equals("/")) {
     String text = rtdb.to<String>();
-    text.trim();
-    if (text.length() > 0) {
-      newMsg = text;
+    String name = "", msg = "";
+    int sep = text.indexOf(":");
+    if(sep>0){
+      name = text.substring(0,sep);
+      msg = text.substring(sep+1);
+      name.trim(); msg.trim();
+    }
+    if (msg.length() > 0) {
+      newMsg = name.length() > 0 ? (name + " says " + msg): msg;
       hasPending = true;
     }
   }

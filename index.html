@@ -32,6 +32,9 @@
       border-radius: 18px;
     }
 
+    #name { flex: 1; }
+    #msg  { flex: 3; }
+
     button {
       padding: 24px 42px;
       font-size: 42px;
@@ -63,6 +66,7 @@
 <body>
 
 <div id="row">
+  <input id="name" maxlength="30" placeholder="name" autocomplete="off">
   <input id="msg" maxlength="240" placeholder="write anything" autocomplete="off">
   <button id="sendBtn">send</button>
 </div>
@@ -80,17 +84,23 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+const nameInput = document.getElementById("name");
 const input = document.getElementById("msg");
 const btn = document.getElementById("sendBtn");
 const status = document.getElementById("status");
+
+try { nameInput.value = localStorage.getItem("name") || ""; } catch (e) {}
 
 async function send() {
   const text = input.value.trim();
   if (!text) return;
 
+  const name = nameInput.value.replace(/:/g, "").trim() || "";
+  try { localStorage.setItem("name", name); } catch (e) {}
+
   btn.disabled = true;
   try {
-    await set(ref(db, "message"), text);
+    await set(ref(db, "message"), name + ":" + text);
     input.value = "";
     status.textContent = "sent";
   } catch (e) {
